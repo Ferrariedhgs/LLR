@@ -1,2 +1,2 @@
 # LLR
-LLM generated escapr rooms
+LLM generated escape rooms
