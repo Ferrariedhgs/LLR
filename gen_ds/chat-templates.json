@@ -1,0 +1,74 @@
+//generate room temperature=0.9
+{
+    "task":"genearate_room"
+}
+
+//response
+{
+    "room_name":"",
+    "room_story":"",
+    "room_prompt":"",
+    "door_description":"",
+    "door_prompt":"",
+    "door_key_name":"",
+    "door_key_prompt":"",
+    "containers":[
+        {
+            "container_name":"",
+            "container_prompt":"",
+        
+        },
+        {
+            "container_name":"",
+            "container_prompt":"",
+        
+        },
+        {
+            "container_name":"",
+            "container_prompt":"",
+        
+        },
+        {
+            "container_name":"",
+            "container_prompt":"",
+        
+        },
+    ],
+    "keys":[
+        {
+            "key_name":"",
+            "key_prompt":"",
+        },
+        {
+            "key_name":"",
+            "key_prompt":"",
+        },
+    ]
+}
+
+
+//continue game    temperature=0.7
+{
+    "task":"continue_game",
+    "location_name":"",
+    "key_name":"",
+    "fits_lock":False,//True/False
+    "item_to_give":""//only if True
+}
+
+//response
+{
+    "text":""
+}
+
+
+//open door
+{
+    "task":"open_door",
+    "has_key":"no_key", //"wrong_key" / "right_key"
+}
+
+//response      temperature=0.7
+{
+    "text":""
+}

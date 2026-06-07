@@ -1,0 +1,3 @@
+gen_ds/untracked
+gen_ds/__pycache__
+finetune/__pycache__

@@ -620,7 +620,7 @@ def parse_args() -> argparse.Namespace:
         help="Ollama API base URL.",
     )
     parser.add_argument("--output", default="F:/Projects/datasets/generate-room-dataset.jsonl", help="Output dataset path.")
-    parser.add_argument("--samples", type=int, default=1000, help="Number of valid samples to write.")
+    parser.add_argument("--samples", type=int, default=400, help="Number of valid samples to write.")
     parser.add_argument("--format", choices=["jsonl", "array"], default="jsonl")
     parser.add_argument("--batch-size", type=int, default=25, help="Save every N valid JSONL rows.")
     parser.add_argument("--attempts", type=int, default=5, help="Retries per sample.")
@@ -629,7 +629,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--repeat-penalty", type=float, default=1.08)
     parser.add_argument("--max-tokens", type=int, default=1000)
     parser.add_argument("--ctx-size", type=int, default=4096)
-    parser.add_argument("--seed", type=int, default=40)
+    parser.add_argument("--seed", type=int, default=44)
     parser.add_argument(
         "--no-json-mode",
         dest="json_mode",

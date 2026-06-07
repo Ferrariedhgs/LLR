@@ -1,0 +1,98 @@
+//generate room temperature=0.9
+{
+    "task":"genearate_room"
+}
+
+//response
+{
+    "room_name":"Asylum basement",
+    "room_story":"You are waking up in a cramped, dark room, a heavy iron door blocking your path. The floor is dusty and covered in cracks. A sign on the wall indicates a door. The air is thick with tension. You must find the key before the power goes out.",
+    "room_prompt":"A narrow, dark corridor with flickering industrial lights and peeling wallpaper",
+    "door_description":"You see a heavy, iron door right in front of you. You can distinguish a Snake symbol above the keyhole",
+    "door_prompt":"iron door with a snake symbol",
+    "door_key_name":"Snake key",
+    "door_key_prompt":"a rusted key with a snake wrapped around it",
+    "containers":[
+        {
+            "container_name":"Crooked shelf",
+            "container_prompt":"a crooked shelf on a wall",
+        
+        },
+        {
+            "container_name":"Medicine cabinet",
+            "container_prompt":"a glass medicine cabinet",
+        
+        },
+        {
+            "container_name":"Carpenter's workbench",
+            "container_prompt":"an old workbench with tools scattered around",
+        
+        },
+        {
+            "container_name":"Locker",
+            "container_prompt":"a single locker in the locker room",
+        
+        },
+    ],
+    "keys":[
+        {
+            "key_name":"Copper key",
+            "key_prompt":"a key made out of copper",
+        },
+        {
+            "key_name":"Sun crest",
+            "key_prompt":"a crest with a sun symbol",
+        },
+    ]
+}
+
+
+//continue game  True
+{
+    "task":"continue_game",
+    "location_name":"Medicine cabinet",
+    "key_name":"Copper Key",
+    "fits_lock":True,
+    "item_to_give":"Snake key"
+}
+
+//response
+{
+    "text":"The copper key fits perfectly in the medicine cabinet's keyhole. It opens and reveals a snake key inside."
+}
+
+//continue game  False 
+{
+    "task":"continue_game",
+    "location_name":"Medicine cabinet",
+    "key_name":"Sun crest",
+    "fits_lock":False,
+}
+
+//response
+{
+    "text":"The sun crest doesn't seem to fit anywhere in the medicine cabinet"
+}
+
+
+
+//open door
+{
+    "task":"open_door",
+    "has_key":"no_key", //"wrong_key" / "right_key"
+}
+
+//response   "no_key"   temperature=0.7
+{
+    "text":"You don't have any key that fits in this door"
+}
+
+//response   "wrong_key"   temperature=0.7
+{
+    "text":"You don't have any key that fits in this door"
+}
+
+//response   "right_key"   temperature=0.7
+{
+    "text":"With a loud click, the door opens and reveals the next room. You managed to escape. For now."
+}
