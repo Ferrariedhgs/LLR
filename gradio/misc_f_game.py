@@ -1,22 +1,18 @@
 # ── ZeroGPU note ──────────────────────────────────────────────────────────────
 # torch.compile / dynamo is NOT supported on ZeroGPU.  Disable globally before
 # any library import so voxcpm's internal torch.compile warmup is a no-op.
-import torch
-torch._dynamo.config.disable         = True   # config flag – not a function call
-torch._dynamo.config.suppress_errors = True
-torch.set_grad_enabled(False)
+
 # ─────────────────────────────────────────────────────────────────────────────
 
 import re
 import json
 import logging
-from llama_cpp import Llama
-from llama_cpp.llama_chat_format import Jinja2ChatFormatter, chat_formatter_to_chat_completion_handler
+
 from huggingface_hub import hf_hub_download
-from diffusers import DiffusionPipeline
 import soundfile as sf
 from voxcpm import VoxCPM
 import numpy as np
+from PIL import Image, ImageDraw, ImageFont
 
 log = logging.getLogger(__name__)
 
@@ -207,6 +203,15 @@ _TEXT_SCHEMA = {
     "required": ["text"],
 }
 
+
+
+
+game_gen='''{"room_name": "The Sandstone Temple of the Sun", "room_story": "A temple carved into sandstone, with a golden altar. The sun rises through a hole in the ceiling, illuminating the dust motes.", "room_prompt": "A sandstone temple with a golden altar, sunlight streaming through a hole in the ceiling, dust motes dancing in the light", "door_description": "A heavy bronze door with a sun symbol carved into it, requiring a golden key to open.", "door_prompt": "A heavy bronze door with a sun symbol carved into it, requiring a golden key to open", "door_key_name": "The Golden Sun Key", "door_key_prompt": "A golden key shaped like a sun with rays extending from the head", "containers": [{"container_name": "The Obsidian Box", "container_prompt": "A black obsidian box with a silver lock, sitting on a stone pedestal"}, {"container_name": "The Crystal Urn", "container_prompt": "A clear crystal urn filled with glowing blue crystals, resting on a wooden table"}, {"container_name": "The Iron Chest", "container_prompt": "A rusted iron chest with a padlock, lying open on the floor"}, {"container_name": "The Leather Satchel", "container_prompt": "A worn leather satchel with a metal clasp, hanging from a hook"}], "keys": [{"key_name": "The Moon Key", "key_prompt": "A silver key shaped like a crescent moon with intricate details"}, {"key_name": "The Broken Dagger", "key_prompt": "A jagged broken dagger with a rusted hilt, lying on the ground"}]}'''
+continue_f='''{"text": "The Moon Key slides against the obsidian lock, its silver teeth clicking uselessly as the heavy door refuses to yield."}'''
+continue_t='''{"text": "The broken dagger slides into the crystal urn with a soft chime, revealing the golden sun key within."}'''
+open_n='''{"text": "The heavy iron door remains stubbornly sealed, its glowing runes mocking your futile attempts as the air grows heavier."}'''
+open_w='''{"text": "The brass lock groans in frustration as the wrong key jams, refusing to turn and leaving you stranded in the dark."}'''
+open_r='''{"text": "The heavy oak door groans open, revealing a path toward the light as the storm recedes."}'''
 # ─── Model loading ────────────────────────────────────────────────────────────
 # Llama.from_pretrained re-downloads the GGUF on every call even when the HF
 # cache is warm, because it re-resolves metadata before checking the blob.
@@ -220,6 +225,15 @@ _GGUF_FILENAME = "nemotron-room-lora-Q4_K_M.gguf"
 _gguf_path: str | None = None   # set on first download, reused every load
 
 
+
+def _placeholder(w, h, r=15, g=55, b=55,txt=""):
+    img = Image.new("RGB", (w, h), (r, g, b))
+    d   = ImageDraw.Draw(img)
+    font=ImageFont.truetype("arial.ttf",20)
+    d.text([0,0],text=txt,stroke_fill=(0,0,0))
+    return img
+
+
 def _ensure_gguf() -> str:
     """Download the GGUF to the HF cache if not already there; return local path."""
     global _gguf_path
@@ -230,66 +244,19 @@ def _ensure_gguf() -> str:
     return _gguf_path
 
 
-def _make_chat_handler():
-    """Build the Jinja2 chat handler from the local template file."""
-    # The GGUF baked-in template unconditionally opens <think>\n on every
-    # generation prompt. The custom template adds a /nothink check so the
-    # system-prompt prefix we prepend actually works.
-    # chat_handler takes priority over the GGUF metadata template.
-    with open("nemotron-template.jinja") as _f:
-        _template_str = _f.read()
-    _formatter = Jinja2ChatFormatter(
-        template=_template_str,
-        eos_token="<|im_end|>",
-        bos_token="<|im_start|>",
-    )
-    try:
-        return _formatter.to_chat_handler()
-    except AttributeError:
-        return chat_formatter_to_chat_completion_handler(_formatter)
 
-
-_text_model_cpu: "Llama | None" = None   # module-level singleton, lives on CPU
 
 
 def load_text_model():
-    """Return the Nemotron GGUF text model, loading it once on first call.
-
-    The model is kept as a module-level singleton running entirely on CPU
-    (n_gpu_layers=0).  llama.cpp uses its own memory — no CUDA / ZeroGPU
-    involvement — so the instance survives across ZeroGPU frame boundaries
-    and never needs to be re-loaded between actions.
-
-    Q4_K_M at 4B params fits comfortably in the ZeroGPU Space's system RAM
-    (~3 GB).  CPU inference for 256-token narration takes ~5-10 s, which is
-    acceptable given we save a full GPU-frame allocation per text call.
+    """Load and return the Nemotron GGUF text model.
+    Uses a cached local path after the first download — no repeated HF traffic.
     """
-    global _text_model_cpu
-    if _text_model_cpu is None:
-        log.info("load_text_model: first load — initialising CPU singleton…")
-        model_path = _ensure_gguf()
-        _text_model_cpu = Llama(
-            model_path=model_path,
-            n_ctx=2048,
-            n_gpu_layers=0,     # CPU-only — no ZeroGPU frame needed
-            flash_attn=False,   # flash_attn requires CUDA; disable on CPU
-            verbose=False,
-            chat_handler=_make_chat_handler(),
-        )
-        log.info("load_text_model: CPU singleton ready.")
-    else:
-        log.info("load_text_model: returning existing CPU singleton.")
-    return _text_model_cpu
+    a=1
 
 
 def load_image_model():
     """Load and return the FLUX diffusion pipeline."""
-    # torch_dtype= is the correct diffusers kwarg (dtype= is silently ignored)
-    return DiffusionPipeline.from_pretrained(
-        "black-forest-labs/FLUX.2-klein-4B",
-        torch_dtype=torch.bfloat16,
-        device_map="cuda",
-    )
+    a=1
 
 
 def load_tts_model():
@@ -297,7 +264,8 @@ def load_tts_model():
     VoxCPM runs a warmup inference in __init__. With dynamo disabled globally
     above, the internal torch.compile wrapper is a no-op and warmup succeeds.
     """
-    return VoxCPM.from_pretrained("openbmb/VoxCPM2")
+    #return VoxCPM.from_pretrained("openbmb/VoxCPM2")
+    a=1
 
 
 def load_models():
@@ -314,69 +282,33 @@ def generate_game(text_model, max_retries: int = 3) -> dict:
     Generate a full room dict.  Retries up to max_retries times on empty or
     unparseable output.  Raises RuntimeError if all attempts fail.
     """
-    for attempt in range(1, max_retries + 1):
-        response = text_model.create_chat_completion(
-            messages=[
-                {"role": "system", "content": _NO_THINK_PREFIX + GENERATE_GAME_PROMPT},
-                {"role": "user",   "content": '{"task":"generate_room"}'},
-            ],
-            response_format={"type": "json_object", "schema": _ROOM_SCHEMA},
-            temperature=0.8,
-            max_tokens=1024,
-        )
-        raw = response["choices"][0]["message"]["content"]
-        log.info("generate_game attempt %d raw output (%d chars): %s",
-                 attempt, len(raw), raw[:200])
+    
+    raw = game_gen
+    
 
-        data = _extract_json(raw)
-        if data and _validate_room(data):
-            return data
+    data = _extract_json(raw)
+    return data
 
-        log.warning("generate_game attempt %d failed validation, retrying…", attempt)
-
-    raise RuntimeError(
-        f"generate_game failed to produce valid JSON after {max_retries} attempts. "
-        "Check model output in logs."
-    )
 
 
 def continue_game(text_model, container: str, key: str,
                   right_key: bool, item_given: str = "") -> dict:
     """Narrate a container-opening attempt. Returns dict with 'text' key."""
-    fits = "true" if right_key else "false"
-    response = text_model.create_chat_completion(
-        messages=[
-            {"role": "system", "content": _NO_THINK_PREFIX + CONTINUE_GAME_PROMPT},
-            {"role": "user",   "content": (
-                f'{{"task":"continue_game","location_name":"{container}",'
-                f'"key_name":"{key}","fits_lock":{fits},"item_to_give":"{item_given}"}}'
-            )},
-        ],
-        response_format={"type": "json_object", "schema": _TEXT_SCHEMA},
-        temperature=0.8,
-        max_tokens=256,
-    )
-    raw  = response["choices"][0]["message"]["content"]
-    data = _extract_json(raw)
-    return data if data else {"text": raw.strip() or "Nothing happens."}
+    
+    if right_key:
+        return f'{{"text":"The {key} opens the {container} and gives you the {item_given}}}'
+    else:
+        return f'{{"text":"The {key} can\'t open the {container}}}'
 
 
 def open_door(text_model, key: str, key_type: str) -> dict:
     """Narrate a door-opening attempt. Returns dict with 'text' key."""
-    response = text_model.create_chat_completion(
-        messages=[
-            {"role": "system", "content": _NO_THINK_PREFIX + OPEN_DOOR_PROMPT},
-            {"role": "user",   "content": (
-                f'{{"task":"open_door","has_key":"{key_type}","given_key":"{key}"}}'
-            )},
-        ],
-        response_format={"type": "json_object", "schema": _TEXT_SCHEMA},
-        temperature=0.8,
-        max_tokens=256,
-    )
-    raw  = response["choices"][0]["message"]["content"]
-    data = _extract_json(raw)
-    return data if data else {"text": raw.strip() or "The door doesn't budge."}
+    if key_type=="right_key":
+        return f'{{"text":"The {key} opens the door}}'
+    elif key_type=="wrong_key":
+        return f'{{"text":"The {key} doesn\'t open the door}}'
+    else:
+        return f'{{"text":"You don\'t have any key}}'
 
 
 def generate_image(image_model, prompt: str, size_type: str):
@@ -387,13 +319,11 @@ def generate_image(image_model, prompt: str, size_type: str):
     time with no quality gain and causes ZeroGPU budget exhaustion.
     """
     sz = IMAGE_SIZES[size_type]
-    return image_model(
-        prompt=prompt,
-        width=sz,
-        height=sz,
-        num_inference_steps=4,   # distilled model: 4 steps is optimal
-        guidance_scale=0.0,      # distilled models ignore CFG; 0 = fastest
-    ).images[0]
+    return _placeholder(
+        w=sz,
+        h=sz,
+        txt=prompt
+    )
 
 
 def generate_voice(tts_model, prompt: str, narrator: str) -> str:
