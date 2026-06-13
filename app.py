@@ -507,7 +507,7 @@ with gr.Blocks(title="1000 Rooms") as demo:
                 )
 
             with gr.Column(scale=0, min_width=400):
-                gr.HTML('<div class="hud">Narrative</div>')
+                gr.HTML('<div class="hud">The Story</div>')
                 narrative = gr.Textbox(
                     label="", show_label=False,
                     placeholder="The story...",
@@ -546,7 +546,7 @@ with gr.Blocks(title="1000 Rooms") as demo:
                 )
 
             with gr.Column(scale=4, min_width=160):
-                gr.HTML('<div class="hud">Selection</div>')
+                gr.HTML('<div class="hud">Your Selection</div>')
                 selection_display = gr.Textbox(
                     label="", show_label=False,
                     value="Container: —\nKey: —",
@@ -560,7 +560,7 @@ with gr.Blocks(title="1000 Rooms") as demo:
                 scale=1, elem_id="cont-btn",
             )
             door_btn = gr.Button(
-                "Open Door 🚪", variant="secondary",
+                "Open Door", variant="primary",
                 scale=1, elem_id="door-btn", visible=True,
             )
 
