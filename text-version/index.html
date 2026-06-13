@@ -642,45 +642,69 @@ function buildExploreChoices() {
 // ─── Phase: container picked → pick a key ────────────────────────────────────
 function chooseContainer(container) {
   pendingContainer = container;
+
+  const assignedKey = containerRewards[container.container_name];
+
+  // If inventory is empty the player has no keys to choose from —
+  // automatically attempt the container with bare hands (always succeeds
+  // for the first container in the chain, since it holds the first key).
+  if (inventory.length === 0) {
+    rightKey(container, assignedKey.key_name);
+    return;
+  }
+
   phase = "key";
   elLabel.textContent = `Which key fits the ${container.container_name}?`;
 
-  // correct key assigned deterministically from backend
-  const assignedKey =
-    containerRewards[container.container_name];
-
   const options = [];
 
-  // 1. correct option (always present)
-  options.push({
-    label: "Key",
-    name: assignedKey.key_name,
-    desc: assignedKey.key_prompt,
-    action: () => rightKey(container, assignedKey.key_name),
-  });
-
-  // 2. distractors
-  const distractors = gameData.keys
-    .filter(k => k.key_name !== assignedKey.key_name)
-    .slice(0, 2)
-    .map(k => ({
+  // 1. Correct option — but only show it if the player already holds it
+  const playerHasKey = inventory.includes(assignedKey.key_name);
+  if (playerHasKey) {
+    options.push({
       label: "Key",
-      name: k.key_name,
-      desc: k.key_prompt,
-      action: () => wrongKey(),
-    }));
+      name: assignedKey.key_name,
+      desc: assignedKey.key_prompt,
+      action: () => rightKey(container, assignedKey.key_name),
+    });
+  }
 
-  options.push(...distractors);
+  // 2. Distractors drawn from keys the player holds (wrong ones)
+  const heldDistractors = inventory
+    .filter(k => k !== assignedKey.key_name)
+    .map(k => {
+      const meta = gameData.keys.find(gk => gk.key_name === k)
+        || { key_name: k, key_prompt: "A key you found earlier." };
+      return {
+        label: "Key",
+        name: meta.key_name,
+        desc: meta.key_prompt,
+        action: () => wrongKey(),
+      };
+    });
+  options.push(...heldDistractors);
 
-  // 3. ALWAYS allow empty-handed
-  if (inventory.length > 0) {
+  // 3. If the correct key isn't in inventory yet, add a decoy from the
+  //    master key list so there's always something to choose from
+  if (!playerHasKey) {
+    const decoy = gameData.keys.find(k => k.key_name !== assignedKey.key_name);
+    if (decoy) {
+      options.push({
+        label: "Key",
+        name: decoy.key_name,
+        desc: decoy.key_prompt,
+        action: () => wrongKey(),
+      });
+    }
+  }
+
+  // 4. Empty-handed option
   options.push({
     label: "Empty Handed",
     name: "Try nothing",
     desc: "You hesitate and step back.",
     action: () => wrongKey(),
   });
-}
 
   renderChoices(shuffle(options).slice(0, 3));
 }

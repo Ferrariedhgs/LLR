@@ -1,24 +1,6 @@
-name: Sync to Hugging Face Space
-
-on:
-  push:
-    branches:
-      - main
-
-jobs:
-  sync:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Push to Hugging Face Space
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: |
-          git config --global user.email "github-actions@github.com"
-          git config --global user.name "GitHub Actions"
-
-          git remote add hf https://user:$HF_TOKEN@huggingface.co/spaces/build-small-hackathon/1000-Rooms
-
-          git push hf main --force
+- name: Push to Hugging Face
+  uses: nateraw/huggingface-sync-action@v0.0.5
+  with:
+    github_repo_id: build-small-hackathon/1000-Rooms
+    huggingface_repo_id: build-small-hackathon/1000-Rooms
+    hf_token: ${{ secrets.HF_TOKEN }}
