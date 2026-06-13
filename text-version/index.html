@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>1000 Rooms</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;600&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet" />
+
+<style>
+  /* ── Tokens ───────────────────────────────────────────────── */
+  :root {
+    --stone-darkest:  #0d0b09;
+    --stone-dark:     #1a1712;
+    --stone-mid:      #2c2720;
+    --stone-light:    #3d3730;
+    --stone-pale:     #6b6055;
+    --amber-deep:     #7a4a0e;
+    --amber:          #c47c1a;
+    --amber-glow:     #e8a832;
+    --amber-pale:     #f0c870;
+    --parchment:      #d4b896;
+    --parchment-dark: #a88c6e;
+    --blood:          #8b1a1a;
+    --blood-bright:   #c0392b;
+    --text-body:      #c9b89e;
+    --text-dim:       #7a6e60;
+    --text-faint:     #4a4338;
+
+    --font-title: 'Cinzel Decorative', serif;
+    --font-head:  'Cinzel', serif;
+    --font-body:  'IM Fell English', serif;
+
+    --radius: 4px;
+    --glow-amber: 0 0 18px rgba(196,124,26,0.45), 0 0 40px rgba(196,124,26,0.18);
+    --glow-choice: 0 0 0 1px var(--amber-deep), 0 0 20px rgba(196,124,26,0.30);
+    --transition: 200ms ease;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--stone-darkest);
+    color: var(--text-body);
+    font-family: var(--font-body);
+    font-size: 17px;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* ── Noise texture overlay ────────────────────────────────── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    opacity: 0.6;
+  }
+
+  /* ── Layout shell ─────────────────────────────────────────── */
+  #app {
+    position: relative; z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 1rem 4rem;
+  }
+
+  /* ── Header ───────────────────────────────────────────────── */
+  header {
+    width: 100%;
+    max-width: 780px;
+    padding: 3rem 0 2rem;
+    text-align: center;
+    border-bottom: 1px solid var(--stone-light);
+    margin-bottom: 2.5rem;
+  }
+
+  .title-lockup {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .title-eyebrow {
+    font-family: var(--font-head);
+    font-size: 0.7rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--amber);
+    opacity: 0.8;
+  }
+
+  h1 {
+    font-family: var(--font-title);
+    font-size: clamp(2rem, 7vw, 3.4rem);
+    color: var(--amber-pale);
+    text-shadow: var(--glow-amber);
+    letter-spacing: 0.04em;
+    line-height: 1.1;
+  }
+
+  .title-sub {
+    font-family: var(--font-body);
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--text-dim);
+    margin-top: 0.25rem;
+  }
+
+  /* ── Main card ────────────────────────────────────────────── */
+  #stage {
+    width: 100%;
+    max-width: 780px;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  /* ── Loading screen ───────────────────────────────────────── */
+  #screen-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 4rem 1rem;
+    text-align: center;
+  }
+
+  .flame-wrap {
+    position: relative;
+    width: 48px; height: 72px;
+  }
+
+  .flame {
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 18px; height: 36px;
+    border-radius: 50% 50% 30% 30% / 60% 60% 40% 40%;
+    background: radial-gradient(ellipse at 50% 80%, var(--amber-glow) 0%, var(--amber) 50%, var(--blood) 100%);
+    animation: flicker 1.6s ease-in-out infinite alternate;
+    filter: blur(1px);
+  }
+  .flame::after {
+    content: '';
+    position: absolute;
+    top: 30%; left: 20%; right: 20%; bottom: 10%;
+    border-radius: 50%;
+    background: rgba(240,200,112,0.5);
+    filter: blur(2px);
+    animation: flicker 1.1s ease-in-out infinite alternate-reverse;
+  }
+  .candle-body {
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 14px; height: 30px;
+    background: linear-gradient(to right, #e8e0d0, #f5f0e8 40%, #d0c8b8);
+    border-radius: 2px 2px 0 0;
+  }
+
+  @keyframes flicker {
+    0%   { transform: translateX(-50%) scaleX(1)   scaleY(1)   rotate(-1deg); opacity: 0.9; }
+    30%  { transform: translateX(-52%) scaleX(0.9) scaleY(1.05) rotate(1deg); }
+    60%  { transform: translateX(-48%) scaleX(1.05) scaleY(0.97) rotate(-2deg); }
+    100% { transform: translateX(-50%) scaleX(0.95) scaleY(1.03) rotate(0deg); opacity: 1; }
+  }
+
+  .loading-text {
+    font-family: var(--font-head);
+    font-size: 0.85rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--amber);
+    animation: pulse-text 2s ease-in-out infinite;
+  }
+  @keyframes pulse-text {
+    0%, 100% { opacity: 0.5; } 50% { opacity: 1; }
+  }
+
+  .loading-hint {
+    font-style: italic;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    max-width: 340px;
+  }
+
+  /* ── Room panel ───────────────────────────────────────────── */
+  #screen-game { display: none; flex-direction: column; gap: 1.75rem; }
+
+  .room-header {
+    background: var(--stone-dark);
+    border: 1px solid var(--stone-light);
+    border-radius: var(--radius);
+    padding: 1.5rem 1.75rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .room-header::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(to right, transparent, var(--amber), transparent);
+  }
+
+  .room-name {
+    font-family: var(--font-head);
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--amber-pale);
+    margin-bottom: 0.6rem;
+    text-shadow: 0 0 12px rgba(196,124,26,0.3);
+  }
+
+  .room-story {
+    font-style: italic;
+    color: var(--text-body);
+    line-height: 1.75;
+    font-size: 0.98rem;
+  }
+
+  /* ── Narrative box ────────────────────────────────────────── */
+  .narrative {
+    background: var(--stone-dark);
+    border-left: 3px solid var(--amber-deep);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 1.1rem 1.4rem;
+    font-style: italic;
+    color: var(--text-body);
+    font-size: 0.97rem;
+    line-height: 1.75;
+    animation: fade-in 0.5s ease;
+  }
+  @keyframes fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* ── Section labels ───────────────────────────────────────── */
+  .section-label {
+    font-family: var(--font-head);
+    font-size: 0.68rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--stone-light);
+  }
+
+  /* ── Choice grid ──────────────────────────────────────────── */
+  .choices-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .choice-btn {
+    background: var(--stone-dark);
+    border: 1px solid var(--stone-light);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    text-align: left;
+    color: var(--text-body);
+    font-family: var(--font-body);
+    font-size: 0.97rem;
+    line-height: 1.6;
+    transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* candlelight glow on hover — the signature effect */
+  .choice-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 120%, rgba(196,124,26,0.18) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity var(--transition);
+    pointer-events: none;
+  }
+
+  .choice-btn:hover {
+    border-color: var(--amber);
+    box-shadow: var(--glow-choice);
+    background: var(--stone-mid);
+  }
+  .choice-btn:hover::before { opacity: 1; }
+
+  .choice-btn:active {
+    background: var(--stone-light);
+    transform: scale(0.99);
+  }
+
+  .choice-btn.selected {
+    border-color: var(--amber-glow);
+    box-shadow: 0 0 0 1px var(--amber), 0 0 28px rgba(232,168,50,0.35);
+    background: var(--stone-mid);
+    pointer-events: none;
+  }
+
+  .choice-label {
+    font-family: var(--font-head);
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 0.3rem;
+    display: block;
+  }
+
+  .choice-name {
+    font-weight: normal;
+    color: var(--parchment);
+    font-size: 1.02rem;
+    display: block;
+    margin-bottom: 0.2rem;
+  }
+
+  .choice-desc {
+    color: var(--text-dim);
+    font-size: 0.88rem;
+    font-style: italic;
+    display: block;
+  }
+
+  /* ── Inventory bar ────────────────────────────────────────── */
+  #inventory-bar {
+    background: var(--stone-dark);
+    border: 1px solid var(--stone-light);
+    border-radius: var(--radius);
+    padding: 0.85rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    font-size: 0.88rem;
+  }
+
+  .inv-label {
+    font-family: var(--font-head);
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    flex-shrink: 0;
+  }
+
+  .inv-empty {
+    font-style: italic;
+    color: var(--text-faint);
+  }
+
+  .inv-item {
+    background: var(--stone-mid);
+    border: 1px solid var(--amber-deep);
+    border-radius: 2px;
+    padding: 0.2rem 0.6rem;
+    color: var(--amber-pale);
+    font-family: var(--font-head);
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+    animation: item-appear 0.35s ease;
+  }
+  @keyframes item-appear {
+    from { opacity: 0; transform: scale(0.85); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  /* ── Win / outro screen ───────────────────────────────────── */
+  #screen-win {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 3rem 1rem;
+    text-align: center;
+    animation: fade-in 0.7s ease;
+  }
+
+  .win-rune {
+    font-family: var(--font-title);
+    font-size: 4rem;
+    color: var(--amber-glow);
+    text-shadow: 0 0 30px rgba(232,168,50,0.7), 0 0 60px rgba(232,168,50,0.3);
+    animation: pulse-glow 3s ease-in-out infinite;
+  }
+  @keyframes pulse-glow {
+    0%, 100% { text-shadow: 0 0 30px rgba(232,168,50,0.7), 0 0 60px rgba(232,168,50,0.3); }
+    50% { text-shadow: 0 0 50px rgba(232,168,50,0.9), 0 0 100px rgba(232,168,50,0.4); }
+  }
+
+  .win-title {
+    font-family: var(--font-head);
+    font-size: 1.6rem;
+    color: var(--amber-pale);
+    letter-spacing: 0.06em;
+  }
+
+  .win-text {
+    max-width: 520px;
+    font-style: italic;
+    color: var(--text-body);
+    line-height: 1.8;
+  }
+
+  .restart-btn {
+    margin-top: 0.5rem;
+    background: transparent;
+    border: 1px solid var(--amber);
+    color: var(--amber-pale);
+    font-family: var(--font-head);
+    font-size: 0.82rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 0.65rem 1.5rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background var(--transition), box-shadow var(--transition);
+  }
+  .restart-btn:hover {
+    background: var(--amber-deep);
+    box-shadow: var(--glow-amber);
+  }
+
+  /* ── Error notice ─────────────────────────────────────────── */
+  .error-notice {
+    background: rgba(139,26,26,0.2);
+    border: 1px solid var(--blood);
+    border-radius: var(--radius);
+    padding: 0.9rem 1.2rem;
+    color: #e07070;
+    font-size: 0.9rem;
+    font-style: italic;
+    display: none;
+  }
+
+  /* ── Responsive ───────────────────────────────────────────── */
+  @media (min-width: 600px) {
+    .choices-grid { grid-template-columns: 1fr 1fr 1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .flame, .loading-text, .win-rune { animation: none; }
+    .choice-btn { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="title-lockup">
+      <span class="title-eyebrow">An escape room of infinite chambers</span>
+      <h1>1000 Rooms</h1>
+      <p class="title-sub">Every door leads somewhere stranger than the last.</p>
+    </div>
+  </header>
+
+  <main id="stage">
+    <!-- Loading screen -->
+    <div id="screen-loading">
+      <div class="flame-wrap">
+        <div class="flame"></div>
+        <div class="candle-body"></div>
+      </div>
+      <span class="loading-text" id="loading-msg">Conjuring your chamber…</span>
+      <p class="loading-hint" id="loading-hint">The dungeon-master is weaving the walls of your prison. This may take a moment.</p>
+    </div>
+
+    <!-- Game screen -->
+    <section id="screen-game">
+      <div class="room-header">
+        <div class="room-name" id="room-name">—</div>
+        <p class="room-story" id="room-story"></p>
+      </div>
+
+      <div class="narrative" id="narrative-box" style="display:none"></div>
+
+      <div id="inventory-bar">
+        <span class="inv-label">Inventory</span>
+        <span class="inv-empty" id="inv-empty">nothing yet</span>
+      </div>
+
+      <div>
+        <p class="section-label" id="choices-label">What do you do?</p>
+        <div class="choices-grid" id="choices-grid"></div>
+      </div>
+
+      <div class="error-notice" id="error-notice"></div>
+    </section>
+
+    <!-- Win screen -->
+    <div id="screen-win">
+      <div class="win-rune">✦</div>
+      <h2 class="win-title">You Escaped</h2>
+      <p class="win-text" id="win-text"></p>
+      <button class="restart-btn" onclick="restartGame()">Try Another Room</button>
+    </div>
+  </main>
+</div>
+
+<script type="module">
+import { Client, handle_file } from "https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js";
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let client   = null;
+let gameData = null;          // full room dict from backend
+let phase    = "idle";        // idle | explore | door
+// phase="explore": player must find the correct key for a container
+// phase="door":    player must find the door key among held items
+
+let inventory      = [];       // key_name strings the player has collected
+let pendingContainer = null;   // { container_name, correct_key_name } when a container choice is active
+let containersLeft = 0;        // how many containers remain interactive
+
+let activeContainers = [];
+let containerRewards = {};
+
+// ─── DOM refs ────────────────────────────────────────────────────────────────
+const elLoading   = document.getElementById("screen-loading");
+const elGame      = document.getElementById("screen-game");
+const elWin       = document.getElementById("screen-win");
+const elLoadMsg   = document.getElementById("loading-msg");
+const elLoadHint  = document.getElementById("loading-hint");
+const elRoomName  = document.getElementById("room-name");
+const elRoomStory = document.getElementById("room-story");
+const elNarrative = document.getElementById("narrative-box");
+const elInvEmpty  = document.getElementById("inv-empty");
+const elInvBar    = document.getElementById("inventory-bar");
+const elLabel     = document.getElementById("choices-label");
+const elGrid      = document.getElementById("choices-grid");
+const elError     = document.getElementById("error-notice");
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+async function boot() {
+  showScreen("loading");
+  try {
+    client = await Client.connect(window.location.origin);
+    await startGame();
+  } catch (err) {
+    showError("Could not connect to the game server: " + err.message);
+  }
+}
+
+// ─── Start / restart ──────────────────────────────────────────────────────────
+async function startGame() {
+  showScreen("loading");
+  setLoadMsg("Conjuring your chamber…", "The dungeon-master is weaving the walls of your prison.");
+
+  inventory        = [];
+  pendingContainer = null;
+  phase            = "idle";
+
+  try {
+    const res = await fetch("/generate_room", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({})
+});
+
+    gameData = await res.json();
+
+// Choose only 3 containers from the 4 generated ones
+activeContainers = shuffle([...gameData.containers]).slice(0, 3);
+
+containerRewards = {};
+
+// First container -> key 1
+containerRewards[activeContainers[0].container_name] =
+    gameData.keys[0];
+
+// Second container -> key 2
+containerRewards[activeContainers[1].container_name] =
+    gameData.keys[1];
+
+// Third container -> door key
+containerRewards[activeContainers[2].container_name] = {
+    key_name: gameData.door_key_name,
+    key_prompt: gameData.door_key_prompt
+};
+
+containersLeft = activeContainers.length;
+
+
+  } catch (err) {
+    showError("The room generation failed: " + err.message);
+    return;
+  }
+
+  // Render room
+  elRoomName.textContent  = gameData.room_name;
+  elRoomStory.textContent = gameData.room_story;
+  renderInventory();
+  showNarrative(gameData.room_prompt, false);
+  buildExploreChoices();
+  showScreen("game");
+}
+
+window.restartGame = () => startGame();
+
+// ─── Phase: explore (choose a container) ─────────────────────────────────────
+function buildExploreChoices() {
+  phase = "explore";
+  elLabel.textContent = "What do you examine?";
+
+  const options = [];
+
+  // Up to 3 containers (or fewer if some have been opened)
+  const remaining = activeContainers;
+  for (const c of remaining) {
+    options.push({
+      label:  "Container",
+      name:   c.container_name,
+      desc:   c.container_prompt,
+      action: () => chooseContainer(c),
+    });
+  }
+
+  // If player holds the door key, offer the door
+  const hasDoorKey = inventory.includes(gameData.door_key_name);
+  if (hasDoorKey) {
+    options.push({
+      label:  "Exit",
+      name:   gameData.door_description,
+      desc:   gameData.door_prompt,
+      action: () => tryDoor(),
+    });
+  }
+
+  renderChoices(options.slice(0, 3));
+}
+
+// ─── Phase: container picked → pick a key ────────────────────────────────────
+function chooseContainer(container) {
+  pendingContainer = container;
+  phase = "key";
+  elLabel.textContent = `Which key fits the ${container.container_name}?`;
+
+  // correct key assigned deterministically from backend
+  const assignedKey =
+    containerRewards[container.container_name];
+
+  const options = [];
+
+  // 1. correct option (always present)
+  options.push({
+    label: "Key",
+    name: assignedKey.key_name,
+    desc: assignedKey.key_prompt,
+    action: () => rightKey(container, assignedKey.key_name),
+  });
+
+  // 2. distractors
+  const distractors = gameData.keys
+    .filter(k => k.key_name !== assignedKey.key_name)
+    .slice(0, 2)
+    .map(k => ({
+      label: "Key",
+      name: k.key_name,
+      desc: k.key_prompt,
+      action: () => wrongKey(),
+    }));
+
+  options.push(...distractors);
+
+  // 3. ALWAYS allow empty-handed
+  if (inventory.length > 0) {
+  options.push({
+    label: "Empty Handed",
+    name: "Try nothing",
+    desc: "You hesitate and step back.",
+    action: () => wrongKey(),
+  });
+}
+
+  renderChoices(shuffle(options).slice(0, 3));
+}
+
+
+// ─── Key outcomes ─────────────────────────────────────────────────────────────
+async function rightKey(container, keyName) {
+  setLoadMsg("Opening the container…", "");
+  showScreen("loading");
+  
+  try {
+    const res = await fetch("/continue_room", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+        container_name: container.container_name,
+        key_name: keyName
+    })
+});
+
+    const result = await res.json();
+    const text = result.text;
+    showNarrative(text, true);
+  } catch (_) {
+    showNarrative(`You open the ${container.container_name} and find the ${keyName}.`, true);
+  }
+
+  // Award the item and remove this container
+  addItem(keyName);
+  activeContainers =
+    activeContainers.filter(c => c !== container);
+
+containersLeft = activeContainers.length;
+
+  if (containersLeft === 0) {
+    tryDoor();
+    return;
+}
+
+  showScreen("game");
+  buildExploreChoices();
+}
+
+
+
+function wrongKey() {
+  showNarrative("The key doesn't fit. You step back and reconsider.", true);
+  buildExploreChoices();
+}
+
+
+
+// ─── Phase: try the exit door ─────────────────────────────────────────────────
+async function tryDoor() {
+  if (!inventory.includes(gameData.door_key_name)) {
+    showNarrative("You don't have what you need to open this door.", true);
+    buildExploreChoices();
+    return;
+  }
+
+  setLoadMsg("The door groans open…", "");
+  showScreen("loading");
+
+  try {
+    const res = await fetch("/open_door", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        room_name: gameData.room_name,
+        door_name: gameData.door_description
+      })
+    });
+
+    const result = await res.json();
+    const text = result.text;
+
+    document.getElementById("win-text").textContent = text;
+
+    showScreen("win");
+  } catch (_) {
+    document.getElementById("win-text").textContent =
+      `You unlock ${gameData.door_description} and escape!`;
+    showScreen("win");
+  }
+}
+
+// ─── Inventory ────────────────────────────────────────────────────────────────
+function addItem(name) {
+  if (!inventory.includes(name)) inventory.push(name);
+  renderInventory();
+}
+
+function renderInventory() {
+  elInvBar.querySelectorAll(".inv-item").forEach(el => el.remove());
+
+  if (inventory.length === 0) {
+    elInvEmpty.style.display = "";
+    elInvEmpty.textContent = "empty hands";
+    return;
+  }
+
+  elInvEmpty.style.display = "none";
+  for (const name of inventory) {
+    const chip = document.createElement("span");
+    chip.className = "inv-item";
+    chip.textContent = name;
+    elInvBar.appendChild(chip);
+  }
+}
+
+// ─── Render helpers ───────────────────────────────────────────────────────────
+function renderChoices(options) {
+  elGrid.innerHTML = "";
+  for (const opt of options) {
+    const btn = document.createElement("button");
+    btn.className = "choice-btn";
+    btn.innerHTML = `
+      <span class="choice-label">${opt.label}</span>
+      <span class="choice-name">${opt.name}</span>
+      <span class="choice-desc">${opt.desc}</span>`;
+    btn.addEventListener("click", () => {
+      btn.classList.add("selected");
+      elGrid.querySelectorAll(".choice-btn").forEach(b => b.style.pointerEvents = "none");
+      opt.action();
+    });
+    elGrid.appendChild(btn);
+  }
+}
+
+function showNarrative(text, animate) {
+  elNarrative.textContent = text;
+  elNarrative.style.display = "block";
+  if (animate) {
+    elNarrative.style.animation = "none";
+    void elNarrative.offsetWidth; // reflow
+    elNarrative.style.animation = "";
+  }
+}
+
+function showScreen(name) {
+  elLoading.style.display = name === "loading" ? "flex"   : "none";
+  elGame.style.display    = name === "game"    ? "flex"   : "none";
+  elWin.style.display     = name === "win"     ? "flex"   : "none";
+}
+
+function setLoadMsg(msg, hint) {
+  elLoadMsg.textContent  = msg;
+  elLoadHint.textContent = hint;
+}
+
+function showError(msg) {
+  elError.textContent    = msg;
+  elError.style.display  = "block";
+  elLoading.style.display = "none";
+  elGame.style.display    = "flex";
+}
+
+// ─── Utils ────────────────────────────────────────────────────────────────────
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ─── Go ───────────────────────────────────────────────────────────────────────
+boot();
+</script>
+</body>
+</html>

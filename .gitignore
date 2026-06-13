@@ -1,6 +1,8 @@
 gen_ds/untracked
 gen_ds/__pycache__
 finetune/__pycache__
+finetune/data
 gradio/untracked
 __pycache__
 backup
+text-version/untracked

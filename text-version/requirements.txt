@@ -4,18 +4,11 @@ spaces
 --extra-index-url https://download.pytorch.org/whl/cu128
 --prefer-binary
 torch==2.8.0
-torchaudio==2.8.0
 llama-cpp-python==0.3.28
 nvidia-cuda-runtime-cu12
 nvidia-cublas-cu12
 nvidia-cuda-nvrtc-cu12
-diffusers>=0.27.0
-transformers>=4.40.0
 accelerate>=0.27.0
-soundfile
 numpy
 Pillow
 huggingface_hub
-safetensors
-sentencepiece
-voxcpm

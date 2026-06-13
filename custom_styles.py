@@ -4,15 +4,15 @@ CSS = """
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
 
 :root {
-    --bg:      #0b2f2f;
-    --bg2:     #0d3838;
-    --accent:  #00ffcc;
-    --glow:    rgba(0,255,204,0.25);
-    --border:  #1a5f5f;
-    --text:    #b8fff0;
-    --dim:     #4a9f8f;
-    --mono:    'Share Tech Mono', monospace;
-    --hud:     'Orbitron', sans-serif;
+    --bg:      #2c2720;
+    --bg2:     #3d3838;
+    --accent:  #e8a832;
+    --glow:    rgba(232,168,50,0.25);
+    --border:  #d4b896;
+    --text:    #c9b89e;
+    --dim:     #c47c1a;
+    --mono:    'IM Fell English', monospace;
+    --hud:     'Cinzel Decorative';
 }
 
 /* ── Body & container ── */
@@ -51,7 +51,7 @@ label, .label-wrap span, p, h1, h2, h3 {
 
 /* ── Textbox ── */
 textarea, input[type=text] {
-    background: #071e1e !important;
+    background: #0d3838 !important;
     border: 1px solid var(--border) !important;
     color: var(--text) !important;
     font-family: var(--mono) !important;
@@ -67,6 +67,7 @@ textarea:focus, input[type=text]:focus {
     height: 400px !important;
     min-height: 400px !important;
     resize: none !important;
+    background: var(--bg2);
 }
 
 /* ── Dropdown / listbox ── */
@@ -211,6 +212,16 @@ div[data-testid="image"], .image-container, .thumbnail-item img {
 #listbox label:hover { background: rgba(0,255,204,0.07) !important; }
 #listbox input[type=checkbox] { accent-color: var(--accent) !important; }
 
+.selection-display {
+background: var(--bg2);
+}
+
+#narration-audio {
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+}
+
 /* ── HUD label ── */
 .hud { font-family: var(--hud) !important; font-size: 0.55rem; letter-spacing: 0.2em;
        color: var(--dim) !important; text-transform: uppercase; margin-bottom: 2px; }
@@ -218,7 +229,7 @@ div[data-testid="image"], .image-container, .thumbnail-item img {
 /* ── Loading overlay ── */
 #nn-overlay {
     position: fixed; inset: 0;
-    background: rgba(11,47,47,0.93);
+    background: #2c2720;
     z-index: 9999;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
@@ -335,7 +346,7 @@ HEAD_JS = """
             life:  0.7 + Math.random() * 0.3,
             decay: 0.003 + Math.random() * 0.006,
             r:     0.8 + Math.random() * 2.2,
-            hue:   155 + Math.random() * 50,
+            hue:   30 + Math.random() * 20,
         };
     }
 
@@ -403,7 +414,7 @@ function startNN() {
         // wires
         for (let li = 0; li < cols - 1; li++) {
             nodes[li].forEach(a => nodes[li+1].forEach(b => {
-                ctx.strokeStyle = '#0d3838';
+                ctx.strokeStyle = '#3a2e1a';
                 ctx.lineWidth = 1;
                 ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
             }));
@@ -412,21 +423,21 @@ function startNN() {
         // nodes
         nodes.forEach((layer, li) => {
             layer.forEach(n => {
-                let radius = 6, color = '#1a5f5f', glow = 0;
+                let radius = 6, color = '#c47c1a', glow = 0;
                 if (li === phase) {
                     const t = phaseT < 0.5 ? phaseT * 2 : (1 - phaseT) * 2;
                     const e = t*t*(3-2*t);
                     radius = 6 + e * 7;
-                    color  = '#00ffcc';
+                    color  = '#e8a832';
                     glow   = e * 20;
                 } else if (li < phase) {
-                    color = 'rgba(0,180,120,0.3)';
+                    color = 'rgba(196,124,26,0.3)';
                 }
                 ctx.save();
-                if (glow) { ctx.shadowBlur = glow; ctx.shadowColor = '#00ffcc'; }
+                if (glow) { ctx.shadowBlur = glow; ctx.shadowColor = '#e8a832'; }
                 ctx.beginPath(); ctx.arc(n.x, n.y, radius, 0, Math.PI*2);
                 ctx.fillStyle = color; ctx.fill();
-                ctx.strokeStyle = li === phase ? '#00ffcc' : '#1a5f5f';
+                ctx.strokeStyle = li === phase ? '#e8a832' : '#c47c1a';
                 ctx.lineWidth = 1.5; ctx.stroke();
                 ctx.restore();
             });
